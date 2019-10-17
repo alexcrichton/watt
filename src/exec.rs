@@ -7,6 +7,7 @@ use proc_macro::TokenStream;
 use std::io::Cursor;
 
 pub fn proc_macro(fun: &str, inputs: Vec<TokenStream>, wasm: &[u8]) -> TokenStream {
+    let start = std::time::Instant::now();
     let cursor = Cursor::new(wasm);
     let module = decode_module(cursor).unwrap();
     if cfg!(watt_debug) {
@@ -39,5 +40,7 @@ pub fn proc_macro(fun: &str, inputs: Vec<TokenStream>, wasm: &[u8]) -> TokenStre
         Value::I32(handle) => handle,
         _ => unimplemented!("unexpected macro return type"),
     };
-    Data::with(|d| d.tokenstream[handle].clone())
+    let res = Data::with(|d| d.tokenstream[handle].clone());
+    eprintln!("watt finished in {:?}", start.elapsed());
+    return res;
 }
