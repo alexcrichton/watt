@@ -1,270 +1,205 @@
 use crate::data::Data;
-use crate::watt::Value;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::char;
 use std::cmp::Ordering;
 use std::iter::once;
 use std::str::FromStr;
 
-const SENTINEL: u32 = u32::max_value();
-const TOKEN_GROUP: u32 = 0;
-const TOKEN_IDENT: u32 = 1;
-const TOKEN_PUNCT: u32 = 2;
-const TOKEN_LITERAL: u32 = 3;
-const DELIMITER_PARENTHESIS: u32 = 0;
-const DELIMITER_BRACE: u32 = 1;
-const DELIMITER_BRACKET: u32 = 2;
-const DELIMITER_NONE: u32 = 3;
-const SPACING_ALONE: u32 = 0;
-const SPACING_JOINT: u32 = 1;
-const ORDERING_LESS: u32 = 0;
-const ORDERING_EQUAL: u32 = 1;
-const ORDERING_GREATER: u32 = 2;
+const SENTINEL: i32 = u32::max_value() as i32;
+const TOKEN_GROUP: i32 = 0;
+const TOKEN_IDENT: i32 = 1;
+const TOKEN_PUNCT: i32 = 2;
+const TOKEN_LITERAL: i32 = 3;
+const DELIMITER_PARENTHESIS: i32 = 0;
+const DELIMITER_BRACE: i32 = 1;
+const DELIMITER_BRACKET: i32 = 2;
+const DELIMITER_NONE: i32 = 3;
+const SPACING_ALONE: i32 = 0;
+const SPACING_JOINT: i32 = 1;
+const ORDERING_LESS: i32 = 0;
+const ORDERING_EQUAL: i32 = 1;
+const ORDERING_GREATER: i32 = 2;
 
-// args: []
-// result: [Int(I32)]
-pub fn token_stream_new(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_new() -> i32 {
     Data::with(|d| {
-        let stream = d.tokenstream.push(TokenStream::new());
-        stack.push(Value::I32(stream));
-        None
+        d.tokenstream.push(TokenStream::new())
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_is_empty(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_is_empty(stream: i32) -> i32 {
     Data::with(|d| {
-        let stream = &d.tokenstream[pop(stack)];
+        let stream = &d.tokenstream[stream];
         let is_empty = stream.is_empty();
-        stack.push(Value::I32(is_empty as u32));
-        None
+        is_empty as i32
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_from_str(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_from_str(string: i32) -> i32 {
     Data::with(|d| {
-        let string = &d.string[pop(stack)];
+        let string = &d.string[string];
         let result = TokenStream::from_str(string);
-        stack.push(Value::I32(match result {
+        match result {
             Ok(stream) => d.tokenstream.push(stream),
             Err(_error) => SENTINEL,
-        }));
-        None
+        }
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_into_iter(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_into_iter(stream: i32) -> i32 {
     Data::with(|d| {
-        let stream = &d.tokenstream[pop(stack)];
+        let stream = &d.tokenstream[stream];
         let iter = stream.clone().into_iter();
-        stack.push(Value::I32(d.intoiter.push(iter)));
-        None
+        d.intoiter.push(iter)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_iter_next(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_iter_next(iter: i32) -> i32 {
     Data::with(|d| {
-        let iter = &mut d.intoiter[pop(stack)];
-        stack.push(Value::I32(match iter.next() {
+        let iter = &mut d.intoiter[iter];
+        match iter.next() {
             Some(token) => d.tokentree.push(token),
             None => SENTINEL,
-        }));
-        None
+        }
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_from_group(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_from_group(group: i32) -> i32 {
     Data::with(|d| {
-        let group = &d.group[pop(stack)];
+        let group = &d.group[group];
         let tree = TokenTree::Group(group.clone());
-        stack.push(Value::I32(d.tokenstream.push(TokenStream::from(tree))));
-        None
+        d.tokenstream.push(TokenStream::from(tree))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_from_ident(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_from_ident(ident: i32) -> i32 {
     Data::with(|d| {
-        let ident = &d.ident[pop(stack)];
+        let ident = &d.ident[ident];
         let tree = TokenTree::Ident(ident.clone());
-        stack.push(Value::I32(d.tokenstream.push(TokenStream::from(tree))));
-        None
+        d.tokenstream.push(TokenStream::from(tree))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_from_punct(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_from_punct(punct: i32) -> i32 {
     Data::with(|d| {
-        let punct = &d.punct[pop(stack)];
+        let punct = &d.punct[punct];
         let tree = TokenTree::Punct(punct.clone());
-        stack.push(Value::I32(d.tokenstream.push(TokenStream::from(tree))));
-        None
+        d.tokenstream.push(TokenStream::from(tree))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_from_literal(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_from_literal(literal: i32) -> i32 {
     Data::with(|d| {
-        let literal = &d.literal[pop(stack)];
+        let literal = &d.literal[literal];
         let tree = TokenTree::Literal(literal.clone());
-        stack.push(Value::I32(d.tokenstream.push(TokenStream::from(tree))));
-        None
+        d.tokenstream.push(TokenStream::from(tree))
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn token_stream_push_group(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_push_group(stream: i32, group: i32) {
     Data::with(|d| {
-        let group = &d.group[pop(stack)];
-        let stream = &mut d.tokenstream[pop(stack)];
+        let group = &d.group[group];
+        let stream = &mut d.tokenstream[stream];
         stream.extend(once(TokenTree::Group(group.clone())));
-        None
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn token_stream_push_ident(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_push_ident(stream: i32, ident: i32) {
     Data::with(|d| {
-        let ident = &d.ident[pop(stack)];
-        let stream = &mut d.tokenstream[pop(stack)];
+        let ident = &d.ident[ident];
+        let stream = &mut d.tokenstream[stream];
         stream.extend(once(TokenTree::Ident(ident.clone())));
-        None
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn token_stream_push_punct(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_push_punct(stream: i32, punct: i32) {
     Data::with(|d| {
-        let punct = &d.punct[pop(stack)];
-        let stream = &mut d.tokenstream[pop(stack)];
+        let punct = &d.punct[punct];
+        let stream = &mut d.tokenstream[stream];
         stream.extend(once(TokenTree::Punct(punct.clone())));
-        None
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn token_stream_push_literal(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_push_literal(stream: i32, literal: i32) {
     Data::with(|d| {
-        let literal = &d.literal[pop(stack)];
-        let stream = &mut d.tokenstream[pop(stack)];
+        let literal = &d.literal[literal];
+        let stream = &mut d.tokenstream[stream];
         stream.extend(once(TokenTree::Literal(literal.clone())));
-        None
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn token_stream_extend(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_extend(stream: i32, next: i32) {
     Data::with(|d| {
-        let next = d.tokenstream[pop(stack)].clone();
-        let stream = &mut d.tokenstream[pop(stack)];
+        let next = d.tokenstream[next].clone();
+        let stream = &mut d.tokenstream[stream];
         stream.extend(next);
-        None
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_tree_kind(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_tree_kind(token: i32) -> i32 {
     Data::with(|d| {
-        let token = &d.tokentree[pop(stack)];
-        stack.push(Value::I32(match token {
+        let token = &d.tokentree[token];
+        match token {
             TokenTree::Group(_) => TOKEN_GROUP,
             TokenTree::Ident(_) => TOKEN_IDENT,
             TokenTree::Punct(_) => TOKEN_PUNCT,
             TokenTree::Literal(_) => TOKEN_LITERAL,
-        }));
-        None
+        }
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_tree_unwrap_group(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_tree_unwrap_group(token: i32) -> i32 {
     Data::with(|d| {
-        let token = &d.tokentree[pop(stack)];
+        let token = &d.tokentree[token];
         let group = match token {
             TokenTree::Group(group) => group,
             _ => unreachable!(),
         };
-        stack.push(Value::I32(d.group.push(group.clone())));
-        None
+        d.group.push(group.clone())
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_tree_unwrap_ident(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_tree_unwrap_ident(token: i32) -> i32 {
     Data::with(|d| {
-        let token = &d.tokentree[pop(stack)];
+        let token = &d.tokentree[token];
         let ident = match token {
             TokenTree::Ident(ident) => ident,
             _ => unreachable!(),
         };
-        stack.push(Value::I32(d.ident.push(ident.clone())));
-        None
+        d.ident.push(ident.clone())
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_tree_unwrap_punct(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_tree_unwrap_punct(token: i32) -> i32 {
     Data::with(|d| {
-        let token = &d.tokentree[pop(stack)];
+        let token = &d.tokentree[token];
         let punct = match token {
             TokenTree::Punct(punct) => punct,
             _ => unreachable!(),
         };
-        stack.push(Value::I32(d.punct.push(punct.clone())));
-        None
+        d.punct.push(punct.clone())
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_tree_unwrap_literal(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_tree_unwrap_literal(token: i32) -> i32 {
     Data::with(|d| {
-        let token = &d.tokentree[pop(stack)];
+        let token = &d.tokentree[token];
         let literal = match token {
             TokenTree::Literal(literal) => literal,
             _ => unreachable!(),
         };
-        stack.push(Value::I32(d.literal.push(literal.clone())));
-        None
+        d.literal.push(literal.clone())
     })
 }
 
-// args: []
-// result: [Int(I32)]
-pub fn span_call_site(stack: &mut Vec<Value>) -> Option<String> {
+pub fn span_call_site() -> i32 {
     Data::with(|d| {
-        stack.push(Value::I32(d.span.push(Span::call_site())));
-        None
+        d.span.push(Span::call_site())
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: [Int(I32)]
-pub fn group_new(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_new(delimiter: i32, stream: i32) -> i32 {
     Data::with(|d| {
-        let stream = &d.tokenstream[pop(stack)];
-        let delimiter = pop(stack);
+        let stream = &d.tokenstream[stream];
         let delimiter = if delimiter == DELIMITER_PARENTHESIS {
             Delimiter::Parenthesis
         } else if delimiter == DELIMITER_BRACE {
@@ -277,63 +212,46 @@ pub fn group_new(stack: &mut Vec<Value>) -> Option<String> {
             unreachable!()
         };
         let group = Group::new(delimiter, stream.clone());
-        stack.push(Value::I32(d.group.push(group)));
-        None
+        d.group.push(group)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn group_delimiter(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_delimiter(group: i32) -> i32 {
     Data::with(|d| {
-        let group = &d.group[pop(stack)];
-        stack.push(Value::I32(match group.delimiter() {
+        let group = &d.group[group];
+        match group.delimiter() {
             Delimiter::Parenthesis => DELIMITER_PARENTHESIS,
             Delimiter::Brace => DELIMITER_BRACE,
             Delimiter::Bracket => DELIMITER_BRACKET,
             Delimiter::None => DELIMITER_NONE,
-        }));
-        None
+        }
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn group_stream(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_stream(group: i32) -> i32 {
     Data::with(|d| {
-        let group = &d.group[pop(stack)];
-        stack.push(Value::I32(d.tokenstream.push(group.stream())));
-        None
+        let group = &d.group[group];
+        d.tokenstream.push(group.stream())
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn group_span(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_span(group: i32) -> i32 {
     Data::with(|d| {
-        let group = &d.group[pop(stack)];
-        stack.push(Value::I32(d.span.push(group.span())));
-        None
+        let group = &d.group[group];
+        d.span.push(group.span())
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn group_set_span(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_set_span(group: i32, span: i32) {
     Data::with(|d| {
-        let span = d.span[pop(stack)];
-        let group = &mut d.group[pop(stack)];
+        let span = d.span[span];
+        let group = &mut d.group[group];
         group.set_span(span);
-        None
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: [Int(I32)]
-pub fn punct_new(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_new(op: i32, spacing: i32) -> i32 {
     Data::with(|d| {
-        let spacing = pop(stack);
-        let op = pop(stack);
         let spacing = if spacing == SPACING_ALONE {
             Spacing::Alone
         } else if spacing == SPACING_JOINT {
@@ -341,733 +259,412 @@ pub fn punct_new(stack: &mut Vec<Value>) -> Option<String> {
         } else {
             unreachable!()
         };
-        let op = char::from_u32(op).unwrap();
-        stack.push(Value::I32(d.punct.push(Punct::new(op, spacing))));
-        None
+        let op = char::from_u32(op as u32).unwrap();
+        d.punct.push(Punct::new(op, spacing))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn punct_as_char(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_as_char(punct: i32) -> i32 {
     Data::with(|d| {
-        let punct = &d.punct[pop(stack)];
-        stack.push(Value::I32(punct.as_char() as u32));
-        None
+        let punct = &d.punct[punct];
+        punct.as_char() as i32
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn punct_spacing(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_spacing(punct: i32) -> i32 {
     Data::with(|d| {
-        let punct = &d.punct[pop(stack)];
-        stack.push(Value::I32(match punct.spacing() {
+        let punct = &d.punct[punct];
+        match punct.spacing() {
             Spacing::Alone => SPACING_ALONE,
             Spacing::Joint => SPACING_JOINT,
-        }));
-        None
+        }
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn punct_span(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_span(punct: i32) -> i32 {
     Data::with(|d| {
-        let punct = &d.punct[pop(stack)];
-        stack.push(Value::I32(d.span.push(punct.span())));
-        None
+        let punct = &d.punct[punct];
+        d.span.push(punct.span())
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn punct_set_span(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_set_span(punct: i32, span: i32) {
     Data::with(|d| {
-        let span = d.span[pop(stack)];
-        let punct = &mut d.punct[pop(stack)];
+        let span = d.span[span];
+        let punct = &mut d.punct[punct];
         punct.set_span(span);
-        None
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: [Int(I32)]
-pub fn ident_new(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_new(string: i32, span: i32) -> i32 {
     Data::with(|d| {
-        let span = d.span[pop(stack)];
-        let string = &d.string[pop(stack)];
-        stack.push(Value::I32(d.ident.push(Ident::new(string, span))));
-        None
+        let span = d.span[span];
+        let string = &d.string[string];
+        d.ident.push(Ident::new(string, span))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn ident_span(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_span(ident: i32) -> i32 {
     Data::with(|d| {
-        let ident = &d.ident[pop(stack)];
-        stack.push(Value::I32(d.span.push(ident.span())));
-        None
+        let ident = &d.ident[ident];
+        d.span.push(ident.span())
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn ident_set_span(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_set_span(ident: i32, span: i32) {
     Data::with(|d| {
-        let span = d.span[pop(stack)];
-        let ident = &mut d.ident[pop(stack)];
+        let span = d.span[span];
+        let ident = &mut d.ident[ident];
         ident.set_span(span);
-        None
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: [Int(I32)]
-pub fn ident_eq(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_eq(ident: i32, other: i32) -> i32 {
     Data::with(|d| {
-        let other = &d.ident[pop(stack)];
-        let ident = &d.ident[pop(stack)];
+        let other = &d.ident[other];
+        let ident = &d.ident[ident];
         let eq = ident.to_string() == other.to_string();
-        stack.push(Value::I32(eq as u32));
-        None
+        eq as i32
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: [Int(I32)]
-pub fn ident_eq_str(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_eq_str(ident: i32, other: i32) -> i32 {
     Data::with(|d| {
-        let other = &d.string[pop(stack)];
-        let ident = &d.ident[pop(stack)];
+        let other = &d.string[other];
+        let ident = &d.ident[ident];
         let eq = ident.to_string() == *other;
-        stack.push(Value::I32(eq as u32));
-        None
+        eq as i32
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: [Int(I32)]
-pub fn ident_cmp(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_cmp(ident: i32, other: i32) -> i32 {
     Data::with(|d| {
-        let other = &d.ident[pop(stack)];
-        let ident = &d.ident[pop(stack)];
+        let other = &d.ident[other];
+        let ident = &d.ident[ident];
         let cmp = match ident.to_string().cmp(&other.to_string()) {
             Ordering::Less => ORDERING_LESS,
             Ordering::Equal => ORDERING_EQUAL,
             Ordering::Greater => ORDERING_GREATER,
         };
-        stack.push(Value::I32(cmp));
-        None
+        cmp
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_u8_suffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_u8_suffixed(n: i32) -> i32 {
     Data::with(|d| {
-        let n = pop(stack) as u8;
-        stack.push(Value::I32(d.literal.push(Literal::u8_suffixed(n))));
-        None
+        d.literal.push(Literal::u8_suffixed(n as u8))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_u16_suffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_u16_suffixed(n: i32) -> i32 {
     Data::with(|d| {
-        let n = pop(stack) as u16;
-        stack.push(Value::I32(d.literal.push(Literal::u16_suffixed(n))));
-        None
+        d.literal.push(Literal::u16_suffixed(n as u16))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_u32_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack);
-        stack.push(Value::I32(d.literal.push(Literal::u32_suffixed(n))));
-        None
-    })
+pub fn literal_u32_suffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::u32_suffixed(n as u32)))
 }
 
-// args: [Int(I64)]
-// result: [Int(I32)]
-pub fn literal_u64_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop64(stack);
-        stack.push(Value::I32(d.literal.push(Literal::u64_suffixed(n))));
-        None
-    })
+pub fn literal_u64_suffixed(n: i64) -> i32 {
+    Data::with(|d| d.literal.push(Literal::u64_suffixed(n as u64)))
 }
 
-// args: [Int(I64), Int(I64)]
-// result: [Int(I32)]
-pub fn literal_u128_suffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_u128_suffixed(lo: i64, hi: i64) -> i32 {
     Data::with(|d| {
-        let hi = pop64(stack);
-        let lo = pop64(stack);
         let n = ((hi as u128) << 64) + lo as u128;
-        stack.push(Value::I32(d.literal.push(Literal::u128_suffixed(n))));
-        None
+        d.literal.push(Literal::u128_suffixed(n))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_usize_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as usize;
-        stack.push(Value::I32(d.literal.push(Literal::usize_suffixed(n))));
-        None
-    })
+pub fn literal_usize_suffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::usize_suffixed(n as usize)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_i8_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as i8;
-        stack.push(Value::I32(d.literal.push(Literal::i8_suffixed(n))));
-        None
-    })
+pub fn literal_i8_suffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i8_suffixed(n as i8)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_i16_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as i16;
-        stack.push(Value::I32(d.literal.push(Literal::i16_suffixed(n))));
-        None
-    })
+pub fn literal_i16_suffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i16_suffixed(n as i16)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_i32_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as i32;
-        stack.push(Value::I32(d.literal.push(Literal::i32_suffixed(n))));
-        None
-    })
+pub fn literal_i32_suffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i32_suffixed(n)))
 }
 
-// args: [Int(I64)]
-// result: [Int(I32)]
-pub fn literal_i64_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop64(stack) as i64;
-        stack.push(Value::I32(d.literal.push(Literal::i64_suffixed(n))));
-        None
-    })
+pub fn literal_i64_suffixed(n: i64) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i64_suffixed(n)))
 }
 
-// args: [Int(I64), Int(I64)]
-// result: [Int(I32)]
-pub fn literal_i128_suffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_i128_suffixed(lo: i64, hi: i64) -> i32 {
     Data::with(|d| {
-        let hi = pop64(stack);
-        let lo = pop64(stack);
         let n = (((hi as u128) << 64) + lo as u128) as i128;
-        stack.push(Value::I32(d.literal.push(Literal::i128_suffixed(n))));
-        None
+        d.literal.push(Literal::i128_suffixed(n))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_isize_suffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as isize;
-        stack.push(Value::I32(d.literal.push(Literal::isize_suffixed(n))));
-        None
-    })
+pub fn literal_isize_suffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::isize_suffixed(n as isize)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_u8_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as u8;
-        stack.push(Value::I32(d.literal.push(Literal::u8_unsuffixed(n))));
-        None
-    })
+pub fn literal_u8_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::u8_unsuffixed(n as u8)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_u16_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as u16;
-        stack.push(Value::I32(d.literal.push(Literal::u16_unsuffixed(n))));
-        None
-    })
+pub fn literal_u16_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::u16_unsuffixed(n as u16)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_u32_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack);
-        stack.push(Value::I32(d.literal.push(Literal::u32_unsuffixed(n))));
-        None
-    })
+pub fn literal_u32_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::u32_unsuffixed(n as u32)))
 }
 
-// args: [Int(I64)]
-// result: [Int(I32)]
-pub fn literal_u64_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop64(stack);
-        stack.push(Value::I32(d.literal.push(Literal::u64_unsuffixed(n))));
-        None
-    })
+pub fn literal_u64_unsuffixed(n: i64) -> i32 {
+    Data::with(|d| d.literal.push(Literal::u64_unsuffixed(n as u64)))
 }
 
-// args: [Int(I64), Int(I64)]
-// result: [Int(I32)]
-pub fn literal_u128_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_u128_unsuffixed(lo: i64, hi: i64) -> i32 {
     Data::with(|d| {
-        let hi = pop64(stack);
-        let lo = pop64(stack);
         let n = ((hi as u128) << 64) + lo as u128;
-        stack.push(Value::I32(d.literal.push(Literal::u128_unsuffixed(n))));
-        None
+        d.literal.push(Literal::u128_unsuffixed(n))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_usize_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as usize;
-        stack.push(Value::I32(d.literal.push(Literal::usize_unsuffixed(n))));
-        None
-    })
+pub fn literal_usize_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::usize_unsuffixed(n as usize)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_i8_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as i8;
-        stack.push(Value::I32(d.literal.push(Literal::i8_unsuffixed(n))));
-        None
-    })
+pub fn literal_i8_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i8_unsuffixed(n as i8)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_i16_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as i16;
-        stack.push(Value::I32(d.literal.push(Literal::i16_unsuffixed(n))));
-        None
-    })
+pub fn literal_i16_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i16_unsuffixed(n as i16)))
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_i32_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop(stack) as i32;
-        stack.push(Value::I32(d.literal.push(Literal::i32_unsuffixed(n))));
-        None
-    })
+pub fn literal_i32_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i32_unsuffixed(n)))
 }
 
-// args: [Int(I64)]
-// result: [Int(I32)]
-pub fn literal_i64_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let n = pop64(stack) as i64;
-        stack.push(Value::I32(d.literal.push(Literal::i64_unsuffixed(n))));
-        None
-    })
+pub fn literal_i64_unsuffixed(n: i64) -> i32 {
+    Data::with(|d| d.literal.push(Literal::i64_unsuffixed(n)))
 }
 
-// args: [Int(I64), Int(I64)]
-// result: [Int(I32)]
-pub fn literal_i128_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_i128_unsuffixed(lo: i64, hi: i64) -> i32 {
     Data::with(|d| {
-        let hi = pop64(stack);
-        let lo = pop64(stack);
         let n = (((hi as u128) << 64) + lo as u128) as i128;
-        stack.push(Value::I32(d.literal.push(Literal::i128_unsuffixed(n))));
-        None
+        d.literal.push(Literal::i128_unsuffixed(n))
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_isize_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_isize_unsuffixed(n: i32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::isize_unsuffixed(n as isize)))
+}
+
+pub fn literal_f64_unsuffixed(f: f64) -> i32 {
+    Data::with(|d| d.literal.push(Literal::f64_unsuffixed(f)))
+}
+
+pub fn literal_f64_suffixed(f: f64) -> i32 {
+    Data::with(|d| d.literal.push(Literal::f64_suffixed(f)))
+}
+
+pub fn literal_f32_unsuffixed(f: f32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::f32_unsuffixed(f)))
+}
+
+pub fn literal_f32_suffixed(f: f32) -> i32 {
+    Data::with(|d| d.literal.push(Literal::f32_suffixed(f)))
+}
+
+pub fn literal_string(s: i32) -> i32 {
     Data::with(|d| {
-        let n = pop(stack) as isize;
-        stack.push(Value::I32(d.literal.push(Literal::isize_unsuffixed(n))));
-        None
+        let string = &d.string[s];
+        d.literal.push(Literal::string(string))
     })
 }
 
-// args: [Int(F64)]
-// result: [Int(I32)]
-pub fn literal_f64_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_character(ch: i32) -> i32 {
     Data::with(|d| {
-        let f = popf64(stack);
-        stack.push(Value::I32(d.literal.push(Literal::f64_unsuffixed(f))));
-        None
+        let ch = char::from_u32(ch as u32).unwrap();
+        d.literal.push(Literal::character(ch))
     })
 }
 
-// args: [Int(F64)]
-// result: [Int(I32)]
-pub fn literal_f64_suffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_byte_string(s: i32) -> i32 {
     Data::with(|d| {
-        let f = popf64(stack);
-        stack.push(Value::I32(d.literal.push(Literal::f64_suffixed(f))));
-        None
+        let bytes = &d.bytes[s];
+        d.literal.push(Literal::byte_string(bytes))
     })
 }
 
-// args: [Int(F32)]
-// result: [Int(I32)]
-pub fn literal_f32_unsuffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_span(lit: i32) -> i32 {
     Data::with(|d| {
-        let f = popf(stack);
-        stack.push(Value::I32(d.literal.push(Literal::f32_unsuffixed(f))));
-        None
+        let literal = &d.literal[lit];
+        d.span.push(literal.span())
     })
 }
 
-// args: [Int(F32)]
-// result: [Int(I32)]
-pub fn literal_f32_suffixed(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_set_span(lit: i32, span: i32) {
     Data::with(|d| {
-        let f = popf(stack);
-        stack.push(Value::I32(d.literal.push(Literal::f32_suffixed(f))));
-        None
-    })
-}
-
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_string(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let string = &d.string[pop(stack)];
-        stack.push(Value::I32(d.literal.push(Literal::string(string))));
-        None
-    })
-}
-
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_character(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let ch = char::from_u32(pop(stack)).unwrap();
-        stack.push(Value::I32(d.literal.push(Literal::character(ch))));
-        None
-    })
-}
-
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_byte_string(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let bytes = &d.bytes[pop(stack)];
-        stack.push(Value::I32(d.literal.push(Literal::byte_string(bytes))));
-        None
-    })
-}
-
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_span(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let literal = &d.literal[pop(stack)];
-        stack.push(Value::I32(d.span.push(literal.span())));
-        None
-    })
-}
-
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn literal_set_span(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let span = d.span[pop(stack)];
-        let literal = &mut d.literal[pop(stack)];
+        let span = d.span[span];
+        let literal = &mut d.literal[lit];
         literal.set_span(span);
-        None
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_clone(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_clone(obj: i32) -> i32 {
     Data::with(|d| {
-        let clone = d.tokenstream[pop(stack)].clone();
-        stack.push(Value::I32(d.tokenstream.push(clone)));
-        None
+        let clone = d.tokenstream[obj].clone();
+        d.tokenstream.push(clone)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn group_clone(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_clone(obj: i32) -> i32 {
     Data::with(|d| {
-        let clone = d.group[pop(stack)].clone();
-        stack.push(Value::I32(d.group.push(clone)));
-        None
+        let clone = d.group[obj].clone();
+        d.group.push(clone)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn ident_clone(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_clone(obj: i32) -> i32 {
     Data::with(|d| {
-        let clone = d.ident[pop(stack)].clone();
-        stack.push(Value::I32(d.ident.push(clone)));
-        None
+        let clone = d.ident[obj].clone();
+        d.ident.push(clone)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn punct_clone(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_clone(obj: i32) -> i32 {
     Data::with(|d| {
-        let clone = d.punct[pop(stack)].clone();
-        stack.push(Value::I32(d.punct.push(clone)));
-        None
+        let clone = d.punct[obj].clone();
+        d.punct.push(clone)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_clone(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_clone(obj: i32) -> i32 {
     Data::with(|d| {
-        let clone = d.literal[pop(stack)].clone();
-        stack.push(Value::I32(d.literal.push(clone)));
-        None
+        let clone = d.literal[obj].clone();
+        d.literal.push(clone)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_iter_clone(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_iter_clone(obj: i32) -> i32 {
     Data::with(|d| {
-        let clone = d.intoiter[pop(stack)].clone();
-        stack.push(Value::I32(d.intoiter.push(clone)));
-        None
+        let clone = d.intoiter[obj].clone();
+        d.intoiter.push(clone)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_to_string(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_to_string(ts: i32) -> i32 {
     Data::with(|d| {
-        let string = d.tokenstream[pop(stack)].to_string();
-        stack.push(Value::I32(d.string.push(string)));
-        None
+        let string = d.tokenstream[ts].to_string();
+        d.string.push(string)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn group_to_string(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_to_string(group: i32) -> i32 {
     Data::with(|d| {
-        let string = d.group[pop(stack)].to_string();
-        stack.push(Value::I32(d.string.push(string)));
-        None
+        let string = d.group[group].to_string();
+        d.string.push(string)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn ident_to_string(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_to_string(ident: i32) -> i32 {
     Data::with(|d| {
-        let string = d.ident[pop(stack)].to_string();
-        stack.push(Value::I32(d.string.push(string)));
-        None
+        let string = d.ident[ident].to_string();
+        d.string.push(string)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn punct_to_string(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_to_string(punct: i32) -> i32 {
     Data::with(|d| {
-        let string = d.punct[pop(stack)].to_string();
-        stack.push(Value::I32(d.string.push(string)));
-        None
+        let string = d.punct[punct].to_string();
+        d.string.push(string)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_to_string(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_to_string(lit: i32) -> i32 {
     Data::with(|d| {
-        let string = d.literal[pop(stack)].to_string();
-        stack.push(Value::I32(d.string.push(string)));
-        None
+        let string = d.literal[lit].to_string();
+        d.string.push(string)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn token_stream_debug(stack: &mut Vec<Value>) -> Option<String> {
+pub fn token_stream_debug(tok: i32) -> i32 {
     Data::with(|d| {
-        let debug = format!("{:?}", d.tokenstream[pop(stack)]);
-        stack.push(Value::I32(d.string.push(debug)));
-        None
+        let debug = format!("{:?}", d.tokenstream[tok]);
+        d.string.push(debug)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn group_debug(stack: &mut Vec<Value>) -> Option<String> {
+pub fn group_debug(group: i32) -> i32 {
     Data::with(|d| {
-        let debug = format!("{:?}", d.group[pop(stack)]);
-        stack.push(Value::I32(d.string.push(debug)));
-        None
+        let debug = format!("{:?}", d.group[group]);
+        d.string.push(debug)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn ident_debug(stack: &mut Vec<Value>) -> Option<String> {
+pub fn ident_debug(ident: i32) -> i32 {
     Data::with(|d| {
-        let debug = format!("{:?}", d.ident[pop(stack)]);
-        stack.push(Value::I32(d.string.push(debug)));
-        None
+        let debug = format!("{:?}", d.ident[ident]);
+        d.string.push(debug)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn punct_debug(stack: &mut Vec<Value>) -> Option<String> {
+pub fn punct_debug(punct: i32) -> i32 {
     Data::with(|d| {
-        let debug = format!("{:?}", d.punct[pop(stack)]);
-        stack.push(Value::I32(d.string.push(debug)));
-        None
+        let debug = format!("{:?}", d.punct[punct]);
+        d.string.push(debug)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn literal_debug(stack: &mut Vec<Value>) -> Option<String> {
+pub fn literal_debug(lit: i32) -> i32 {
     Data::with(|d| {
-        let debug = format!("{:?}", d.literal[pop(stack)]);
-        stack.push(Value::I32(d.string.push(debug)));
-        None
+        let debug = format!("{:?}", d.literal[lit]);
+        d.string.push(debug)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn span_debug(stack: &mut Vec<Value>) -> Option<String> {
+pub fn span_debug(span: i32) -> i32 {
     Data::with(|d| {
-        let debug = format!("{:?}", d.span[pop(stack)]);
-        stack.push(Value::I32(d.string.push(debug)));
-        None
+        let debug = format!("{:?}", d.span[span]);
+        d.string.push(debug)
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn watt_string_with_capacity(stack: &mut Vec<Value>) -> Option<String> {
+pub fn watt_string_with_capacity(cap: i32) -> i32 {
+    Data::with(|d| d.string.push(String::with_capacity(cap as usize)))
+}
+
+pub fn watt_string_push_char(string: i32, ch: i32) {
     Data::with(|d| {
-        let cap = pop(stack) as usize;
-        let string = d.string.push(String::with_capacity(cap));
-        stack.push(Value::I32(string));
-        None
+        d.string[string].push(char::from_u32(ch as u32).unwrap());
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn watt_string_push_char(stack: &mut Vec<Value>) -> Option<String> {
+pub fn watt_string_len(string: i32) -> i32 {
+    Data::with(|d| d.string[string].len() as i32)
+}
+
+pub fn watt_string_char_at(string: i32, pos: i32) -> i32 {
     Data::with(|d| {
-        let ch = pop(stack);
-        let string = &mut d.string[pop(stack)];
-        string.push(char::from_u32(ch).unwrap());
-        None
+        let string = &d.string[string];
+        string[pos as usize..].chars().next().unwrap() as i32
     })
 }
 
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn watt_string_len(stack: &mut Vec<Value>) -> Option<String> {
+pub fn watt_bytes_with_capacity(cap: i32) -> i32 {
+    Data::with(|d| d.bytes.push(Vec::with_capacity(cap as usize)))
+}
+
+pub fn watt_bytes_push(bytes: i32, byte: i32) {
     Data::with(|d| {
-        let string = &d.string[pop(stack)];
-        stack.push(Value::I32(string.len() as u32));
-        None
+        let bytes = &mut d.bytes[bytes];
+        bytes.push(byte as u8);
     })
 }
 
-// args: [Int(I32), Int(I32)]
-// result: [Int(I32)]
-pub fn watt_string_char_at(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let pos = pop(stack) as usize;
-        let string = &d.string[pop(stack)];
-        let ch = string[pos..].chars().next().unwrap() as u32;
-        stack.push(Value::I32(ch));
-        None
-    })
-}
-
-// args: [Int(I32)]
-// result: [Int(I32)]
-pub fn watt_bytes_with_capacity(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let cap = pop(stack) as usize;
-        let string = d.bytes.push(Vec::with_capacity(cap));
-        stack.push(Value::I32(string));
-        None
-    })
-}
-
-// args: [Int(I32), Int(I32)]
-// result: []
-pub fn watt_bytes_push(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| {
-        let b = pop(stack) as u8;
-        let bytes = &mut d.bytes[pop(stack)];
-        bytes.push(b);
-        None
-    })
-}
-
-// args: [Int(I32)]
-// result: []
-pub fn watt_print_panic(stack: &mut Vec<Value>) -> Option<String> {
-    Data::with(|d| panic!("{}", d.string[pop(stack)]))
-}
-
-fn pop(stack: &mut Vec<Value>) -> u32 {
-    match stack.pop() {
-        Some(Value::I32(int)) => int,
-        _ => unreachable!("unexpected Value type on stack"),
-    }
-}
-
-fn pop64(stack: &mut Vec<Value>) -> u64 {
-    match stack.pop() {
-        Some(Value::I64(int)) => int,
-        _ => unreachable!("unexpected Value type on stack"),
-    }
-}
-
-fn popf(stack: &mut Vec<Value>) -> f32 {
-    match stack.pop() {
-        Some(Value::F32(float)) => float,
-        _ => unreachable!("unexpected Value type on stack"),
-    }
-}
-
-fn popf64(stack: &mut Vec<Value>) -> f64 {
-    match stack.pop() {
-        Some(Value::F64(float)) => float,
-        _ => unreachable!("unexpected Value type on stack"),
-    }
+pub fn watt_print_panic(string: i32) {
+    Data::with(|d| panic!("{}", d.string[string]))
 }

@@ -45,7 +45,7 @@ pub struct Collection<T> {
     vec: Vec<T>,
 }
 
-pub type Handle = u32;
+pub type Handle = i32;
 
 impl<T> Collection<T> {
     pub fn push(&mut self, value: T) -> Handle {

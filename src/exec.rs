@@ -1,43 +1,43 @@
 use crate::data::Data;
-use crate::watt::{
-    decode_module, get_export, init_store, instantiate_module, invoke_func, ExternVal, Value,
-};
-use crate::{debug, import};
+use std::time::Instant;
+use crate::import;
 use proc_macro::TokenStream;
-use std::io::Cursor;
+
+use watt_jit::*;
 
 pub fn proc_macro(fun: &str, inputs: Vec<TokenStream>, wasm: &[u8]) -> TokenStream {
-    let cursor = Cursor::new(wasm);
-    let module = decode_module(cursor).unwrap();
-    if cfg!(watt_debug) {
-        debug::print_module(&module);
-    }
-
-    let mut store = init_store();
-    let extern_vals = import::extern_vals(&module, &mut store);
-    let module_instance = instantiate_module(&mut store, module, &extern_vals).unwrap();
-    let main = match get_export(&module_instance, fun) {
-        Ok(ExternVal::Func(main)) => main,
-        _ => unimplemented!("unresolved macro: {:?}", fun),
-    };
+    let start = Instant::now();
+    let engine = Engine::new();
+    let store = Store::new(&engine);
+    eprintln!("store at {:?}", start.elapsed());
+    let module = Module::new(&store, wasm);
+    eprintln!("module at {:?}", start.elapsed());
+    let imports = import::extern_vals(&module, &store);
+    eprintln!("imports at {:?}", start.elapsed());
+    let module_instance = Instance::new(&store, &module, &imports).unwrap();
+    eprintln!("instance at {:?}", start.elapsed());
+    let main = module
+        .exports()
+        .iter()
+        .position(|p| p.name() == fun)
+        .expect(&format!("unresolved macro: {:?}", fun));
+    let exports = module_instance.exports();
+    let main = exports[main].func().unwrap();
+    eprintln!("main at {:?}", start.elapsed());
 
     let _guard = Data::guard();
     let args = Data::with(|d| {
         inputs
             .into_iter()
-            .map(|input| Value::I32(d.tokenstream.push(input)))
-            .collect()
+            .map(|input| Val::i32(d.tokenstream.push(input)))
+            .collect::<Vec<_>>()
     });
 
-    let res = invoke_func(&mut store, main, args);
-    let values = match res {
-        Ok(values) => values,
-        Err(err) => panic!("{:?}", err),
-    };
+    let values = main.call(&args).unwrap();
+    eprintln!("call at {:?}", start.elapsed());
     let handle = values.into_iter().next().unwrap();
-    let handle = match handle {
-        Value::I32(handle) => handle,
-        _ => unimplemented!("unexpected macro return type"),
-    };
-    Data::with(|d| d.tokenstream[handle].clone())
+    let handle = handle.as_i32().expect("unexpected macro return type");
+    let ret = Data::with(|d| d.tokenstream[handle].clone());
+    eprintln!("expanded in {:?}", start.elapsed());
+    return ret;
 }
