@@ -18,7 +18,8 @@ include = [
 ]
 
 [workspace]
-members = ["demo/caller", "demo/wa", "runtime/tests", "proc-macro"]
+members = ["demo/caller", "demo/wa", "runtime/tests", "proc-macro", "demo/serde"]
 
 [patch.crates-io]
 watt = { path = "." }
+wa-serde-derive = { git = 'https://github.com/alexcrichton/rust-serde', branch = 'wa-serde-opt' }

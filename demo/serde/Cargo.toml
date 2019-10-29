@@ -1,0 +1,11 @@
+[package]
+name = "watt-demo-serde"
+version = "0.0.0"
+authors = ["David Tolnay <dtolnay@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+wa-serde-derive = "0.1.101"
+serde = "1.0"
+serde_derive = { git = 'https://github.com/alexcrichton/rust-serde', branch = 'log-timings' }

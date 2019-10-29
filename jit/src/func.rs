@@ -133,12 +133,23 @@ macro_rules! fnimpl {
                     _args: *const ffi::wasm_val_t,
                     results: *mut ffi::wasm_val_t,
                 ) -> *mut ffi::wasm_trap_t {
+                    let a = std::time::Instant::now();
                     let env = &mut *(env as *mut F);
                     $(
                         let ($arg, _args) = WasmArg::from(_args);
                     )*
                     let ret = env($($arg),*);
                     ret.into(results);
+                    let dur = a.elapsed();
+                    super::IMPORT_TIME.with(|c| {
+                        c.set(c.get() + dur);
+                    });
+                    super::TIME_BY_IMPORT.with(|c| {
+                        *c.borrow_mut()
+                            .entry(std::any::type_name::<F>())
+                            .or_insert_with(Default::default)
+                            += dur;
+                    });
                     ptr::null_mut()
                 }
 

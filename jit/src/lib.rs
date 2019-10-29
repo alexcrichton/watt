@@ -72,3 +72,6 @@ pub mod current_memory {
         })
     }
 }
+
+std::thread_local!(pub static IMPORT_TIME: std::cell::Cell<std::time::Duration> = Default::default());
+std::thread_local!(pub static TIME_BY_IMPORT: std::cell::RefCell<std::collections::HashMap<&'static str, std::time::Duration>> = Default::default());
