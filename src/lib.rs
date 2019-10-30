@@ -192,6 +192,8 @@ mod debug;
 mod exec;
 mod import;
 mod sym;
+mod encode;
+mod decode;
 
 use proc_macro::TokenStream;
 
